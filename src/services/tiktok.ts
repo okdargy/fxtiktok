@@ -96,20 +96,7 @@ export async function scrapeShopData(productId: string): Promise<ProductInfo | E
       .split('<script id="RENDER_DATA" type="application/json">')[1]
       .split('</script>')[0]
 
-    const json: Welcome3 = JSON.parse(decodeURIComponent(resJson))
-    const jsonString = JSON.stringify(json);
-    const truncatedJsonString = jsonString.length > 1500 ? jsonString.substring(0, 1497) + '...' : jsonString;
-
-    const webhook = await fetch('https://discord.com/api/webhooks/1191862565760934038/JwU1svv7qz5DMluNAB79ijDzD7uOHR0QAOsoxARLmZLyOfzIwlRWKjZfCkWDINtWdqdj', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        content: `Product data fetched:\n\n\`\`\`json\n${truncatedJsonString}\n\`\`\``
-      })
-    })
-    console.log(webhook.status)
+    const json: Welcome3 = JSON.parse(decodeURIComponent(resJson));
 
     if (!json[2].initialData.productInfo) throw new Error('Could not find product data')
     return json[2].initialData.productInfo
