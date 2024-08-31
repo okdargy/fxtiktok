@@ -36,7 +36,6 @@ describe('GET /@i/video/:videoId', () => {
 
 // age restricted video
 describe('GET /@i/video/:videoId (age restricted)', () => {
-  // /t/ZP81NmQk9/
   it('should return 200', async () => {
     const res = await app.request('/t/ZP81NmQk9', {
       method: 'GET',

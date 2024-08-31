@@ -1,9 +1,9 @@
 import { Hono } from 'hono'
 import { cache } from 'hono/cache'
 
-import { scrapeLiveData, scrapeVideoData } from './services/tiktok'
+import { scrapeLiveData, scrapeShopData, scrapeVideoData } from './services/tiktok'
 import { grabAwemeId } from './services/tiktok'
-import { VideoResponse, ErrorResponse, LiveResponse, WarningResponse } from './templates'
+import { VideoResponse, ErrorResponse, LiveResponse, WarningResponse, ShopResponse } from './templates'
 import generateAlternate from './util/generateAlternate'
 import { returnHTMLResponse } from './util/responseHelper'
 
@@ -15,7 +15,7 @@ const awemeLinkPattern = /\/@([\w\d_.]+)\/(video|photo|live)\/?(\d{19})?/
 const BOT_REGEX =
   /bot|facebook|embed|got|firefox\/92|firefox\/38|curl|wget|go-http|yahoo|generator|whatsapp|revoltchat|preview|link|proxy|vkshare|images|analyzer|index|crawl|spider|python|cfnetwork|node|mastodon|http\.rb|ruby|bun\/|fiddler|iframely|steamchaturllookup/i
 
-app.get('/test/:videoId', async (c) => {
+app.get('/test/video/:videoId', async (c) => {
   const { videoId } = c.req.param()
 
   try {
@@ -154,6 +154,7 @@ async function handleVideo(c: any): Promise<Response> {
     return returnHTMLResponse(responseContent, 500)
   }
 }
+
 async function handleLive(c: any): Promise<Response> {
   const { author, videoId } = c.req.param()
   let authorName = author
@@ -196,6 +197,39 @@ async function handleLive(c: any): Promise<Response> {
     }
 
     const responseContent = await LiveResponse(liveData)
+    return returnHTMLResponse(responseContent)
+  } catch (e) {
+    const responseContent = await ErrorResponse((e as Error).message)
+    return returnHTMLResponse(responseContent, 500)
+  }
+}
+
+async function handleShop(c: any): Promise<Response> {
+  const { shopId } = c.req.param()
+
+  if (!BOT_REGEX.test(c.req.header('User-Agent') || '')) {
+    const url = new URL(c.req.url)
+
+    // Remove tracking parameters
+    url.search = ''
+
+    return new Response('', {
+      status: 302,
+      headers: {
+        Location: 'https://www.tiktok.com' + url.pathname
+      }
+    })
+  }
+
+  try {
+    const shopData = await scrapeShopData(shopId)
+
+    if (shopData instanceof Error) {
+      const responseContent = await ErrorResponse((shopData as Error).message)
+      return returnHTMLResponse(responseContent, 500)
+    }
+
+    const responseContent = await ShopResponse(shopData)
     return returnHTMLResponse(responseContent)
   } catch (e) {
     const responseContent = await ErrorResponse((e as Error).message)
@@ -356,6 +390,10 @@ const routes = [
   {
     path: '/:author/live',
     handler: handleLive
+  },
+  {
+    path: '/view/product/:shopId',
+    handler: handleShop
   }
 ]
 
